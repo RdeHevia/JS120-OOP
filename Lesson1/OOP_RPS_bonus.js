@@ -1,3 +1,4 @@
+/* eslint-disable max-statements */
 /* eslint-disable max-lines-per-function */
 /*
 PROBLEM:
@@ -11,25 +12,27 @@ KEY WORDS:
   - words: *human, *computer, *move(RPSSL), *score, *history, game
   - verbs: *choose, update, change strategy, display, find
 ORGANIZATION:
-  human:
+  1) human:
     - move
     - choose()
     - winner?
-  computer:
+  2) computer:
+    Collaborators: 4)
     - move
     - choose()
     - winner?
-    - change strategy
-  score:
+    - change strategy()
+  3) score:
     - human
     - computer
-    - update
-  history of past moves:
+    - update()
+  4 )history of past moves:
     - human
     - computer
-  game:
-    - display winner, score, move history...
-    - find winner?
+  5) game:
+    - Collaborators: 1) 2) 3) 4)
+    - display winner, score, move history... ()
+    - find winner()?
 ALGORITHM:
   1. Welcome message
   2. Human chooses
@@ -49,10 +52,23 @@ findWinner RPSSL
   4. Else -> tie
 chooseComputer:
   1. Define the weights
+  2. Transform the weight object into a nested
   2. Generate a random number btw 0 and 1.
   3. For each weight:
     - Calculate the sum of weights from 0 to that weight.
-    - If the random number is less or equal than the weight -> return that choice
+    - If the random number is less or equal than the weight ->return that choice
+changeStrategy:
+  1. Based solely in the human frequency of movements, calculate the weights
+    that maximizes computer's chances of winning.
+  2. Calculate the weighted average between: a) the current weights and
+    b) the weights based on human history of movements
+  3. Assign the result to the computer weights
+calcWeightsBasedOnMoveFrequency:
+  1. Import winning combinations
+  2. For each move:
+    2.1. replace the array of winning combinations with the move frequency
+    2.2. calculate the average between the two values
+  3. The result is an object with RPSSL as properties and the weights as values
 */
 let readline = require('readline-sync');
 
@@ -104,22 +120,98 @@ function createHuman() {
 function createComputer() {
   let playerObject = createPlayer();
   let computerObject = {
-    weights: [0.2, 0.2, 0.2, 0.2, 0.2],
+    frequencyOfMovesPerUnit: {},
+    weights: {
+      rock: 0.2,
+      paper: 0.2,
+      scissors: 0.2,
+      spock: 0.2,
+      lizard: 0.2
+    },
+    gameMetrics: {},
+    winningCombinations: createRules().winningCombinations,
 
     choose() {
-      const availableChoices = createRules().choices;
+      let availableChoices = createRules().choices;
       let randomNumber = Math.random();
-
-      for (let idx = 0; idx < this.weights.length; idx += 1) {
-        let sumOfWeights = this.weights
-          .slice(0, idx + 1)
-          .reduce((sum, weight) => sum + weight);
+      let sumOfWeights = 0;
+      for (let idx = 0; idx < availableChoices.length; idx += 1) {
+        let choice = availableChoices[idx];
+        sumOfWeights += this.weights[choice];
         if (randomNumber <= sumOfWeights) {
-          this.move = availableChoices[idx];
+          this.move = choice;
           break;
         }
       }
     },
+
+    changeStrategy() {
+      let weightsJustBasedOnHumanPastMoves =
+        this.calcWeightsBasedOnMoveFrequency();
+      this.updateWeights(weightsJustBasedOnHumanPastMoves);
+    },
+
+    calcWeightsBasedOnMoveFrequency() {
+      let humanFrequencyOfMovesPerUnit =
+        this.gameMetrics.frequencyOfMovesPerUnit.human;
+      let weightsJustBasedOnHumanPastMoves = {};
+      let winningCombinations = this.winningCombinations;
+
+      for (let move in winningCombinations) {
+        let winningMove1 = winningCombinations[move][0];
+        let winningMove2 = winningCombinations[move][1];
+        let weight1 = humanFrequencyOfMovesPerUnit[winningMove1];
+        let weight2 = humanFrequencyOfMovesPerUnit[winningMove2];
+        weightsJustBasedOnHumanPastMoves[move] =
+          this.weightedAverage(weight1, weight2);
+      }
+      return weightsJustBasedOnHumanPastMoves;
+    },
+
+    weightedAverage(number1, number2, weightingFactors = [1, 1]) {
+      let [weightingFactor1, weightingFactor2] = weightingFactors;
+      return (
+        ((weightingFactor1 * number1) + (weightingFactor2 * number2)) /
+        (weightingFactor1 + weightingFactor2)
+      );
+    },
+
+    updateWeights(weightsJustBasedOnHumanPastMoves) {
+      let weights = this.weights;
+      let numberOfMoves = this.gameMetrics.numberOfRounds;
+      let averageWeightingFactors =
+        this.calcAverageWeightingFactors(numberOfMoves);
+      for (let move in weights) {
+        weights[move] = this.weightedAverage(
+          weights[move],
+          weightsJustBasedOnHumanPastMoves[move],
+          averageWeightingFactors
+        );
+      }
+    },
+    calcAverageWeightingFactors(numberOfMoves) {
+      let weightingFactorForCurrentWeights;
+      let weightingFactorForWeightsBasedOnHumanPastMoves;
+      if (numberOfMoves <= 5) {
+        weightingFactorForWeightsBasedOnHumanPastMoves =
+          (5 * numberOfMoves) - 5;
+        weightingFactorForCurrentWeights =
+          100 - weightingFactorForWeightsBasedOnHumanPastMoves;
+      } else {
+        weightingFactorForCurrentWeights = 80;
+        weightingFactorForWeightsBasedOnHumanPastMoves = 20;
+      }
+      return ([
+        weightingFactorForCurrentWeights,
+        weightingFactorForWeightsBasedOnHumanPastMoves
+      ]);
+    },
+    studyGameMetrics(metrics) {
+      this.gameMetrics = metrics;
+    },
+    seeFrequencyOfMovesPerUnit(frequencyOfMovesPerUnit) {
+      this.frequencyOfMovesPerUnit = frequencyOfMovesPerUnit;
+    }
   };
   return Object.assign(playerObject, computerObject);
 }
@@ -127,7 +219,6 @@ function createComputer() {
 function createPlayer() {
   return {
     move: null,
-    moveHistory: [],
     score: 0,
     winner: false,
   };
@@ -147,10 +238,172 @@ function createRules() {
   };
 }
 
+function createGameMetrics() {
+  return {
+    lastMove: {
+      human: null,
+      computer: null
+    },
+
+    historyOfMoves: {
+      human: [],
+      computer: []
+    },
+
+    frequencyOfMoves: {
+      human: {
+        rock: 0,
+        paper: 0,
+        scissors: 0,
+        spock: 0,
+        lizard: 0
+      },
+      computer: {
+        rock: 0,
+        paper: 0,
+        scissors: 0,
+        spock: 0,
+        lizard: 0
+      }
+    },
+
+    frequencyOfMovesPerUnit: {
+      human: {},
+      computer: {},
+    },
+
+    numberOfRounds: 0,
+
+    winner: null,
+
+    score: {
+      human: 0,
+      computer: 0,
+    },
+
+    rules: createRules(),
+
+    calculateNumberOfRounds() {
+      this.numberOfRounds = this.historyOfMoves.human.length;
+    },
+
+    calculateFrequencyOfMoves() {
+      this.calculateFrequencyOfMovesOfAPlayer('human');
+      this.calculateFrequencyOfMovesOfAPlayer('computer');
+    },
+    calculateFrequencyOfMovesOfAPlayer(player) {
+      let frequencyOfMoves = this.frequencyOfMoves[player];
+      let lastMove = this.historyOfMoves[player].slice().pop();
+      frequencyOfMoves[lastMove] += 1;
+    },
+
+    calculateFrequencyOfMovesPerUnit() {
+      this.calculateFrequencyOfMovesPerUnitOfAPlayer('human');
+      this.calculateFrequencyOfMovesPerUnitOfAPlayer('computer');
+    },
+
+    calculateFrequencyOfMovesPerUnitOfAPlayer(player) {
+      let numberOfMoves = this.numberOfRounds;
+
+      let frequencyOfMoves = this.frequencyOfMoves[player];
+      let frequencyOfMovesPerUnit = this.frequencyOfMovesPerUnit[player];
+      for (let move in frequencyOfMoves) {
+        frequencyOfMovesPerUnit[move] = frequencyOfMoves[move] / numberOfMoves;
+      }
+    },
+
+    updateMoveHistory(humanMove, computerMove) {
+      this.lastMove.human = humanMove;
+      this.lastMove.computer = computerMove;
+
+      this.historyOfMoves.human.push(humanMove);
+      this.historyOfMoves.computer.push(computerMove);
+    },
+
+    displayMoveHistory() {
+      let humanHistoryOfMoves = this.historyOfMoves.human;
+      let computerHistoryOfMoves = this.historyOfMoves.computer;
+      console.clear();
+      console.log('PAST MOVES:');
+      print.emptyLines(1);
+      console.log(`YOU: ${humanHistoryOfMoves.join(', ')}`);
+      console.log(`COMPUTER: ${computerHistoryOfMoves.join(', ')}`);
+      print.sectionSeparator();
+    },
+
+    findWinner() {
+      let humanMove = this.lastMove.human;
+      let computerMove = this.lastMove.computer;
+      let winningCombinations = this.rules.winningCombinations;
+
+      if (winningCombinations[humanMove].includes(computerMove)) {
+        this.winner = 'human';
+      } else if (winningCombinations[computerMove].includes(humanMove)) {
+        this.winner = 'computer';
+      } else {
+        this.winner = 'tie';
+      }
+    },
+
+    displayWinner() {
+      let humanMove = this.lastMove.human;
+      let computerMove = this.lastMove.computer;
+
+      console.clear();
+      print.sectionSeparator();
+      console.log(`You chose: ${humanMove}`);
+      console.log(`The computer chose: ${computerMove}`);
+      print.emptyLines(1);
+
+      if (this.winner === 'human') {
+        console.log('You win!');
+      } else if (this.winner === 'computer') {
+        console.log('Computer wins!');
+      } else {
+        console.log(`It's a tie.`);
+      }
+      print.sectionSeparator();
+    },
+
+    updateScore() {
+      if (this.winner === 'human') {
+        this.score.human += 1;
+      } else if (this.winner === 'computer') {
+        this.score.computer += 1;
+      }
+    },
+
+    displayScore() {
+      console.log(`SCORE (HUMAN : COMPUTER)`);
+      console.log(`${this.score.human} : ${this.score.computer}`);
+      print.sectionSeparator();
+    },
+
+    matchEnded() {
+      const NUMBER_OF_ROUNDS = 5;
+      if ((this.score.human === NUMBER_OF_ROUNDS) ||
+          (this.score.computer === NUMBER_OF_ROUNDS)) {
+        return true;
+      } else {
+        return false;
+      }
+    },
+
+    displayMatchWinner() {
+      if (this.score.human > this.score.computer) {
+        console.log(`You won the match!`);
+      } else {
+        console.log(`The computer won the match.`);
+      }
+    },
+  };
+}
+
 const RPSGame = {
   human: createHuman(),
   computer: createComputer(),
   rules: createRules(),
+  metrics: createGameMetrics(),
 
   displayWelcomeMessage() {
     console.clear();
@@ -188,54 +441,9 @@ const RPSGame = {
     }
   },
 
-  updateMoveHistory() {
-    let humanMove = this.human.move;
-    let computerMove = this.computer.move;
-    this.human.moveHistory.push(humanMove);
-    this.computer.moveHistory.push(computerMove);
-  },
-  updateComputerWeights() {
-    let humanMoveHistory = this.human.moveHistory;
-    let lastMoveIndex = humanMoveHistory.length - 1;
-    if (humanMoveHistory[lastMoveIndex] === humanMoveHistory[lastMoveIndex - 1]) {
-      // Implementation pending
-      // Change weights data structure to an object: {rock: 0.2, paper: 0.2,...}
-      // add this function to the computer object: 
-      // this.computer.updatesStrategy(humanMoveHistory) 
-      //Helper function of updatesStrategy: updateWeightsBasedOnHumanPastMoves (humanMoveHistory)
-    }
-  },
-  displayMoveHistory() {
-    console.log('PAST MOVES:');
-    print.emptyLines(1);
-    console.log(`YOU: ${this.human.moveHistory.join(', ')}`);
-    console.log(`COMPUTER: ${this.computer.moveHistory.join(', ')}`);
-    print.sectionSeparator();
-  },
-
   displayScore() {
     console.log(`SCORE (HUMAN : COMPUTER)`);
     console.log(`${this.human.score} : ${this.computer.score}`);
-    print.sectionSeparator();
-  },
-
-  displayWinner() {
-    let humanMove = this.human.move;
-    let computerMove = this.computer.move;
-
-    console.clear();
-    print.sectionSeparator();
-    console.log(`You chose: ${humanMove}`);
-    console.log(`The computer chose: ${computerMove}`);
-    print.emptyLines(1);
-
-    if (this.human.winner) {
-      console.log('You win!');
-    } else if (this.computer.winner) {
-      console.log('Computer wins!');
-    } else {
-      console.log(`It's a tie.`);
-    }
     print.sectionSeparator();
   },
 
@@ -248,16 +456,7 @@ const RPSGame = {
   nextRound() {
     print.prompt(`Are you ready for the next round? Press any key to continue`);
     readline.question();
-    console.clear();
-  },
-  matchEnded() {
-    const NUMBER_OF_ROUNDS = 5;
-    if ((this.human.score === NUMBER_OF_ROUNDS) ||
-        (this.computer.score === NUMBER_OF_ROUNDS)) {
-      return true;
-    } else {
-      return false;
-    }
+    // console.clear();
   },
 
   displayMatchWinner() {
@@ -270,16 +469,27 @@ const RPSGame = {
 
   bestOf5() {
     while (true) {
-      this.displayMoveHistory();
+      this.metrics.displayMoveHistory();
+
       this.human.choose();
       this.computer.choose();
-      this.findWinner();
-      this.displayWinner();
-      this.updateScore();
-      this.displayScore();
-      this.updateMoveHistory();
-      if (this.matchEnded()) {
-        this.displayMatchWinner();
+
+      this.metrics.updateMoveHistory(this.human.move, this.computer.move);
+
+      this.metrics.findWinner();
+      this.metrics.displayWinner();
+      this.metrics.updateScore();
+      this.metrics.displayScore();
+
+      this.metrics.calculateNumberOfRounds();
+      this.metrics.calculateFrequencyOfMoves();
+      this.metrics.calculateFrequencyOfMovesPerUnit();
+
+      this.computer.studyGameMetrics(this.metrics);
+      this.computer.changeStrategy();
+
+      if (this.metrics.matchEnded()) {
+        this.metrics.displayMatchWinner();
         break;
       }
       this.nextRound();
@@ -298,7 +508,11 @@ const RPSGame = {
 };
 
 
-let compu = createComputer();
-compu.choose();
-console.log(compu);
-// RPSGame.play();
+// let compu = createComputer();
+// compu.choose();
+// console.log(compu);
+// let metrics = createGameMetrics();
+// console.log(metrics);
+
+RPSGame.play();
+
