@@ -80,6 +80,7 @@ const print = {
   emptyLines (numberOfEmptyLines) {
     console.log('\n'.repeat(numberOfEmptyLines));
   },
+
   separator () {
     const NUMBER_OF_HYPHENS = 50;
     console.log('-'.repeat(NUMBER_OF_HYPHENS));
@@ -91,34 +92,45 @@ const print = {
     this.emptyLines(1);
     console.log('-'.repeat(NUMBER_OF_HYPHENS));
     this.emptyLines(1);
-  }
+  },
 };
 
 function createHuman() {
   let playerObject = createPlayer();
+
   let humanObject = {
     choose() {
       let choice;
       let availableChoices = createRules().choices;
+      console.log('YOUR TURN:');
+      print.emptyLines(1);
       while (true) {
-        print.prompt('Please choose rock, paper, scissors, spock or lizard:');
+        print.prompt(
+          'Please choose (r)ock, (p)aper, (s)cissors, (sp)ock or (l)izard ' +
+          'and press ENTER:'
+        );
+
         print.emptyLines(1);
-        choice = readline.question();
+        choice = readline.question().toLowerCase();
         print.emptyLines(1);
-        if (availableChoices.includes(choice)) {
+
+        if (availableChoices.hasOwnProperty(choice)) {
           break;
         }
+        console.clear();
         console.log('Sorry, invalid choice. Choose again');
         print.emptyLines(1);
       }
-      this.move = choice;
+      this.move = availableChoices[choice];
     }
   };
+
   return Object.assign(playerObject, humanObject);
 }
 
 function createComputer() {
   let playerObject = createPlayer();
+
   let computerObject = {
     frequencyOfMovesPerUnit: {},
     weights: {
@@ -128,16 +140,19 @@ function createComputer() {
       spock: 0.2,
       lizard: 0.2
     },
+
     gameMetrics: {},
     winningCombinations: createRules().winningCombinations,
 
     choose() {
-      let availableChoices = createRules().choices;
+      let availableChoices = Object.values(createRules().choices);
       let randomNumber = Math.random();
       let sumOfWeights = 0;
+
       for (let idx = 0; idx < availableChoices.length; idx += 1) {
         let choice = availableChoices[idx];
         sumOfWeights += this.weights[choice];
+
         if (randomNumber <= sumOfWeights) {
           this.move = choice;
           break;
@@ -148,6 +163,7 @@ function createComputer() {
     changeStrategy() {
       let weightsJustBasedOnHumanPastMoves =
         this.calcWeightsBasedOnMoveFrequency();
+
       this.updateWeights(weightsJustBasedOnHumanPastMoves);
     },
 
@@ -160,8 +176,10 @@ function createComputer() {
       for (let move in winningCombinations) {
         let winningMove1 = winningCombinations[move][0];
         let winningMove2 = winningCombinations[move][1];
+
         let weight1 = humanFrequencyOfMovesPerUnit[winningMove1];
         let weight2 = humanFrequencyOfMovesPerUnit[winningMove2];
+
         weightsJustBasedOnHumanPastMoves[move] =
           this.weightedAverage(weight1, weight2);
       }
@@ -170,6 +188,7 @@ function createComputer() {
 
     weightedAverage(number1, number2, weightingFactors = [1, 1]) {
       let [weightingFactor1, weightingFactor2] = weightingFactors;
+
       return (
         ((weightingFactor1 * number1) + (weightingFactor2 * number2)) /
         (weightingFactor1 + weightingFactor2)
@@ -179,8 +198,10 @@ function createComputer() {
     updateWeights(weightsJustBasedOnHumanPastMoves) {
       let weights = this.weights;
       let numberOfMoves = this.gameMetrics.numberOfRounds;
+
       let averageWeightingFactors =
         this.calcAverageWeightingFactors(numberOfMoves);
+
       for (let move in weights) {
         weights[move] = this.weightedAverage(
           weights[move],
@@ -189,18 +210,23 @@ function createComputer() {
         );
       }
     },
+
     calcAverageWeightingFactors(numberOfMoves) {
       let weightingFactorForCurrentWeights;
       let weightingFactorForWeightsBasedOnHumanPastMoves;
-      if (numberOfMoves <= 5) {
+      const LIMIT = 5;
+
+      if (numberOfMoves <= LIMIT) {
         weightingFactorForWeightsBasedOnHumanPastMoves =
-          (5 * numberOfMoves) - 5;
+          (LIMIT * numberOfMoves) - LIMIT;
+
         weightingFactorForCurrentWeights =
           100 - weightingFactorForWeightsBasedOnHumanPastMoves;
       } else {
         weightingFactorForCurrentWeights = 80;
         weightingFactorForWeightsBasedOnHumanPastMoves = 20;
       }
+
       return ([
         weightingFactorForCurrentWeights,
         weightingFactorForWeightsBasedOnHumanPastMoves
@@ -219,14 +245,18 @@ function createComputer() {
 function createPlayer() {
   return {
     move: null,
-    score: 0,
-    winner: false,
   };
 }
 
 function createRules() {
   return {
-    choices: ['rock', 'paper', 'scissors', 'spock', 'lizard'],
+    choices: {
+      r: 'rock',
+      p: 'paper',
+      s: 'scissors',
+      sp: 'spock',
+      l: 'lizard'
+    },
 
     winningCombinations: {
       rock: ['lizard', 'scissors'],
@@ -291,9 +321,11 @@ function createGameMetrics() {
       this.calculateFrequencyOfMovesOfAPlayer('human');
       this.calculateFrequencyOfMovesOfAPlayer('computer');
     },
+
     calculateFrequencyOfMovesOfAPlayer(player) {
       let frequencyOfMoves = this.frequencyOfMoves[player];
       let lastMove = this.historyOfMoves[player].slice().pop();
+
       frequencyOfMoves[lastMove] += 1;
     },
 
@@ -307,6 +339,7 @@ function createGameMetrics() {
 
       let frequencyOfMoves = this.frequencyOfMoves[player];
       let frequencyOfMovesPerUnit = this.frequencyOfMovesPerUnit[player];
+
       for (let move in frequencyOfMoves) {
         frequencyOfMovesPerUnit[move] = frequencyOfMoves[move] / numberOfMoves;
       }
@@ -323,11 +356,15 @@ function createGameMetrics() {
     displayMoveHistory() {
       let humanHistoryOfMoves = this.historyOfMoves.human;
       let computerHistoryOfMoves = this.historyOfMoves.computer;
-      console.clear();
+
       console.log('PAST MOVES:');
+
       print.emptyLines(1);
+
       console.log(`YOU: ${humanHistoryOfMoves.join(', ')}`);
       console.log(`COMPUTER: ${computerHistoryOfMoves.join(', ')}`);
+
+      print.emptyLines(5);
       print.sectionSeparator();
     },
 
@@ -349,19 +386,32 @@ function createGameMetrics() {
       let humanMove = this.lastMove.human;
       let computerMove = this.lastMove.computer;
 
-      console.clear();
-      print.sectionSeparator();
-      console.log(`You chose: ${humanMove}`);
-      console.log(`The computer chose: ${computerMove}`);
+      console.log('ROUND WINNER:');
+      print.emptyLines(1);
+
+      console.log(`YOU: ${humanMove}`);
+      console.log(`COMPUTER: ${computerMove}`);
+
       print.emptyLines(1);
 
       if (this.winner === 'human') {
-        console.log('You win!');
+        console.log(
+          `${humanMove.toUpperCase()} wins against ${computerMove.toUpperCase()}.`
+        );
+        print.emptyLines(1);
+        console.log('YOU win!');
       } else if (this.winner === 'computer') {
-        console.log('Computer wins!');
+        console.log(
+          `${computerMove.toUpperCase()} wins against ${humanMove.toUpperCase()}.`
+        );
+        print.emptyLines(1);
+        console.log('The COMPUTER wins!');
       } else {
-        console.log(`It's a tie.`);
+        console.log('You both chose the same.');
+        print.emptyLines(1);
+        console.log(`It's a TIE`);
       }
+
       print.sectionSeparator();
     },
 
@@ -376,11 +426,13 @@ function createGameMetrics() {
     displayScore() {
       console.log(`SCORE (HUMAN : COMPUTER)`);
       console.log(`${this.score.human} : ${this.score.computer}`);
+
       print.sectionSeparator();
     },
 
     matchEnded() {
       const NUMBER_OF_ROUNDS = 5;
+
       if ((this.score.human === NUMBER_OF_ROUNDS) ||
           (this.score.computer === NUMBER_OF_ROUNDS)) {
         return true;
@@ -390,11 +442,15 @@ function createGameMetrics() {
     },
 
     displayMatchWinner() {
+      console.log('MATCH WINNER:');
+      print.emptyLines(1);
+
       if (this.score.human > this.score.computer) {
-        console.log(`You won the match!`);
+        console.log(`YOU won the match! :)`);
       } else {
-        console.log(`The computer won the match.`);
+        console.log(`The COMPUTER won the match. You lost. :(`);
       }
+      print.sectionSeparator();
     },
   };
 }
@@ -408,68 +464,49 @@ const RPSGame = {
   displayWelcomeMessage() {
     console.clear();
     print.sectionSeparator();
-    console.log('Welcome to Rock, Paper, Scissors!');
+
+    console.log('Welcome to ROCK, PAPER, SCISSORS, SPOCK, LIZARD!');
+
     print.sectionSeparator();
+
+    console.log('Are you ready? Press ENTER to continue');
+    readline.question();
   },
 
   displayGoodbyeMessage() {
     console.log('Thanks for playing Rock, Paper, Scissors. Goodbye!');
   },
-
-  findWinner() {
-    let humanMove = this.human.move;
-    let computerMove = this.computer.move;
-    let winningCominations = this.rules.winningCombinations;
-
-    if (winningCominations[humanMove].includes(computerMove)) {
-      this.human.winner = true;
-      this.computer.winner = false;
-    } else if (winningCominations[computerMove].includes(humanMove)) {
-      this.human.winner = false;
-      this.computer.winner = true;
-    } else {
-      this.human.winner = false;
-      this.computer.winner = false;
-    }
-  },
-
-  updateScore() {
-    if (this.human.winner) {
-      this.human.score += 1;
-    } else if (this.computer.winner) {
-      this.computer.score += 1;
-    }
-  },
-
-  displayScore() {
-    console.log(`SCORE (HUMAN : COMPUTER)`);
-    console.log(`${this.human.score} : ${this.computer.score}`);
+  displayHeader() {
+    console.clear();
+    print.emptyLines(1);
+    console.log('ROCK  |  PAPER  |  SCISSORS  |  SPOCK  |  LIZARD');
     print.sectionSeparator();
   },
 
   playAgain() {
     console.log('Would you like to play again? (y/n)');
-    let answer = readline.question();
-    return answer.toLowerCase()[0] === 'y';
+    print.emptyLines(1);
+    let answer = readline.question().toLowerCase()[0];
+
+    if (answer !== 'y' && answer !== 'n') {
+      console.clear();
+      console.log('Invalid choice. Choose again.');
+      print.emptyLines(1);
+      return this.playAgain();
+    }
+    return answer === 'y';
   },
 
   nextRound() {
     print.prompt(`Are you ready for the next round? Press any key to continue`);
     readline.question();
-    // console.clear();
-  },
-
-  displayMatchWinner() {
-    if (this.human.score > this.computer.score) {
-      console.log(`You won the match!`);
-    } else {
-      console.log(`The computer won the match.`);
-    }
   },
 
   bestOf5() {
     while (true) {
+      this.displayHeader();
       this.metrics.displayMoveHistory();
+      this.metrics.displayScore();
 
       this.human.choose();
       this.computer.choose();
@@ -477,6 +514,7 @@ const RPSGame = {
       this.metrics.updateMoveHistory(this.human.move, this.computer.move);
 
       this.metrics.findWinner();
+      this.displayHeader();
       this.metrics.displayWinner();
       this.metrics.updateScore();
       this.metrics.displayScore();
@@ -507,12 +545,6 @@ const RPSGame = {
   },
 };
 
-
-// let compu = createComputer();
-// compu.choose();
-// console.log(compu);
-// let metrics = createGameMetrics();
-// console.log(metrics);
-
 RPSGame.play();
+
 
