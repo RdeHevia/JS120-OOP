@@ -1,6 +1,75 @@
 /* eslint-disable max-statements */
 /* eslint-disable max-lines-per-function */
-
+/*
+PROBLEM:
+- RPS is a 2 player game
+- Each player chooses one of 3 possible moves: rock, paper, scissors
+- The winner is chosen by comparing their moves with the following rules:
+  - rock wins agains scissors
+  - scissors wing against paper
+  - paper wins against rock
+KEY WORDS:
+  - words: *human, *computer, *move(RPSSL), *score, *history, game
+  - verbs: *choose, update, change strategy, display, find
+ORGANIZATION:
+  1) human:
+    - move
+    - choose()
+    - winner?
+  2) computer:
+    Collaborators: 4)
+    - move
+    - choose()
+    - winner?
+    - change strategy()
+  3) score:
+    - human
+    - computer
+    - update()
+  4 )history of past moves:
+    - human
+    - computer
+  5) game:
+    - Collaborators: 1) 2) 3) 4)
+    - display winner, score, move history... ()
+    - find winner()?
+ALGORITHM:
+  1. Welcome message
+  2. Human chooses
+  3. Computer chooses
+  4. Compare choices
+  5. Display winner
+  6. Update score
+  7. Repeat 1 to 6 until score = 5
+displayWinner:
+  1. Find winner
+  2. Update score
+  3. display the winner
+findWinner RPSSL
+  1. Define the rules (relationships between RPSSL)
+  2. If move1 includes move2 -> player1 wins
+  3. If move2 includes move1 -> player2 wins
+  4. Else -> tie
+chooseComputer:
+  1. Define the weights
+  2. Transform the weight object into a nested
+  2. Generate a random number btw 0 and 1.
+  3. For each weight:
+    - Calculate the sum of weights from 0 to that weight.
+    - If the random number is less or equal than the weight ->return that choice
+changeStrategy:
+  1. Based solely in the human frequency of movements, calculate the weights
+    that maximizes computer's chances of winning.
+  2. Calculate the weighted average between: a) the current weights and
+    b) the weights based on human history of movements
+  3. Assign the result to the computer weights
+calcWeightsBasedOnMoveFrequency:
+  1. Import winning combinations
+  2. For each move:
+    2.1. replace the array of winning combinations with the move frequency
+    2.2. calculate the average between the two values
+  3. The result is an object with RPSSL as properties and the weights as values
+*/
 let readline = require('readline-sync');
 
 const print = {
@@ -27,7 +96,7 @@ const print = {
 };
 
 function createHuman() {
-  let playerObject = createPlayer();
+  let player = createPlayer();
 
   let humanObject = {
     choose() {
@@ -56,13 +125,13 @@ function createHuman() {
     }
   };
 
-  return Object.assign(playerObject, humanObject);
+  return Object.assign(player, humanObject);
 }
 
 function createComputer() {
-  let playerObject = createPlayer();
+  let player = createPlayer();
 
-  let computerObject = {
+  let computer = {
     frequencyOfMovesPerUnit: {},
     weights: {
       rock: 0.2,
@@ -170,7 +239,7 @@ function createComputer() {
       this.frequencyOfMovesPerUnit = frequencyOfMovesPerUnit;
     }
   };
-  return Object.assign(playerObject, computerObject);
+  return Object.assign(player, computer);
 }
 
 function createPlayer() {
@@ -361,6 +430,11 @@ function createGameMetrics() {
       print.sectionSeparator();
     },
 
+    resetScore() {
+      this.score.human = 0;
+      this.score.computer = 0;
+    },
+
     matchEnded() {
       const NUMBER_OF_ROUNDS = 5;
 
@@ -397,7 +471,8 @@ const RPSGame = {
     print.sectionSeparator();
 
     console.log('Welcome to ROCK, PAPER, SCISSORS, SPOCK, LIZARD!');
-
+    print.emptyLines(1);
+    console.log(`Whoever is first to win 5 games wins the match!`);
     print.sectionSeparator();
 
     console.log('Are you ready? Press ENTER to continue');
@@ -415,17 +490,18 @@ const RPSGame = {
   },
 
   playAgain() {
+    const VALID_CHOICES = ['y', 'yes','n', 'no'];
     console.log('Would you like to play again? (y/n)');
     print.emptyLines(1);
-    let answer = readline.question().toLowerCase()[0];
+    let answer = readline.question().toLowerCase();
 
-    if (answer !== 'y' && answer !== 'n') {
+    if (!VALID_CHOICES.includes(answer)) {
       console.clear();
       console.log('Invalid choice. Choose again.');
       print.emptyLines(1);
       return this.playAgain();
     }
-    return answer === 'y';
+    return answer[0] === 'y';
   },
 
   nextRound() {
@@ -433,7 +509,7 @@ const RPSGame = {
     readline.question();
   },
 
-  bestOf5() {
+  playMatch() {
     while (true) {
       this.displayHeader();
       this.metrics.displayMoveHistory();
@@ -459,6 +535,7 @@ const RPSGame = {
 
       if (this.metrics.matchEnded()) {
         this.metrics.displayMatchWinner();
+        this.metrics.resetScore();
         break;
       }
       this.nextRound();
@@ -468,7 +545,7 @@ const RPSGame = {
   play() {
     this.displayWelcomeMessage();
     while (true) {
-      this.bestOf5();
+      this.playMatch();
       if (!this.playAgain()) break;
     }
 
