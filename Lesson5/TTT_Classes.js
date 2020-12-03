@@ -28,6 +28,10 @@ class Square {
 
 class Board {
   constructor() {
+    this.reset();
+  }
+
+  reset() {
     this.squares = {};
     for (let squareNumber = 1; squareNumber <= 9; squareNumber += 1) {
       this.squares[squareNumber] = new Square();
@@ -136,6 +140,16 @@ class TTTGame {
   play() {
     this.displayWelcomeMessage();
 
+    while (true) {
+      this.playOneGame();
+      if (!this.playAgain()) break;
+      this.board.reset();
+    }
+
+    this.displayGoodbyeMessage();
+  }
+
+  playOneGame() {
     this.board.display();
 
     while (true) {
@@ -149,7 +163,6 @@ class TTTGame {
     }
     this.board.displayWithClear();
     this.displayResults();
-    this.displayGoodbyeMessage();
   }
 
   displayWelcomeMessage() {
@@ -177,7 +190,7 @@ class TTTGame {
 
     while (true) {
       let validChoices = this.board.unusedSquares();
-      // const prompt = `Choose a square (${validChoices.join(', ')}): `;
+
       const prompt = `Choose a square (${TTTGame.joinOr(validChoices)}): `;
       choice = readline.question(prompt);
 
@@ -213,6 +226,19 @@ class TTTGame {
     return TTTGame.POSSIBLE_WINNING_ROWS.some(row => {
       return this.board.countMarkersFor(player, row) === 3;
     });
+  }
+
+  playAgain() {
+    const VALID_CHOICES = {y: true, n: false};
+    console.log('Do you want to play again? Yes (y) or no (n)?');
+    let choice = readline.question();
+
+    if (!VALID_CHOICES.hasOwnProperty(choice)) {
+      console.log('Invalid choice. please choose again.');
+      return this.playAgain();
+    }
+    return VALID_CHOICES[choice];
+
   }
 }
 
