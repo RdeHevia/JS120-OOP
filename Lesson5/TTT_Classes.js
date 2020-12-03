@@ -1,39 +1,3 @@
-/*
-ASSOCIATION:
-player:
-  - computer
-  - human
-  * mark()
-game:
-  - board
-    -squares
-  - rules
-    - markers: X, O
-    - row
-  * play()
-  * win()
-*/
-
-/*
-LS ASSOCIATIONS:
-- game
-- board
-- row
-- square
-- marker
-- player
-  - human
-  - computer
-  * mark()
-  * play()
-*/
-
-// class Square {
-//   constructor(marker) {
-//     this.marker = marker;
-//   }
-// }
-
 let readline = require('readline-sync');
 
 class Square {
@@ -150,6 +114,19 @@ class TTTGame {
     [ "3", "5", "7" ],            // diagonal: bottom-left to top-right
   ]
 
+  static joinOr(array, intermediateSeparator = ', ', lastSeparator = 'or') {
+    if (array.length <= 1) {
+      return array.toString();
+    } else {
+      let elementsButLast = array.slice(0,array.length - 1);
+      let lastElement = array[array.length - 1];
+      lastSeparator = ' ' + lastSeparator + ' ';
+      return elementsButLast.join(intermediateSeparator)
+        + lastSeparator
+        + lastElement.toString();
+    }
+  }
+
   constructor() {
     this.board = new Board();
     this.human = new Human();
@@ -200,7 +177,8 @@ class TTTGame {
 
     while (true) {
       let validChoices = this.board.unusedSquares();
-      const prompt = `Choose a square (${validChoices.join(', ')}): `;
+      // const prompt = `Choose a square (${validChoices.join(', ')}): `;
+      const prompt = `Choose a square (${TTTGame.joinOr(validChoices)}): `;
       choice = readline.question(prompt);
 
       if (validChoices.includes(choice)) break;
