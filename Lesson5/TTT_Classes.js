@@ -217,11 +217,14 @@ class TTTGame {
     // if (this.canWin(this.human) || this.canWin(this.computer)) {
     //   choice = this.winningMoveOf(this.human) || this.winningMoveOf(this.computer);
     // }
-    if(this.someoneCouldWinOnNextMove()) {
+    if (this.someoneCouldWinOnNextMove()) {
       choice = (
         this.findWinningMoveOf(this.computer) || 
         this.findWinningMoveOf(this.human)
       );
+    } else if (this.isCenterSquareAvailable()) {
+      const CENTER_SQUARE_IDENTIFIER = "5";
+      choice = CENTER_SQUARE_IDENTIFIER;
     } else {
     // if (this.findWinningMoveOf(this.human)) {
     //   choice = this.findWinningMoveOf(this.human);
@@ -256,6 +259,12 @@ class TTTGame {
       this.board.unMarkSquareAt(squareNumber);
     }
     return winningSquareNumber;
+  }
+
+  isCenterSquareAvailable() {
+    let unusedSquares = this.board.unusedSquares();
+    let CENTER_SQUARE_IDENTIFIER = "5";
+    return unusedSquares.includes(CENTER_SQUARE_IDENTIFIER);
   }
 
   gameOver() {
