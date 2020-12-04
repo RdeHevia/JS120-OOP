@@ -38,6 +38,11 @@ class Board {
     }
   }
 
+  copy() {
+    // new feature to create trialBoard???
+    // for (square in this.squares) {
+      // Object.assign({},square) ... something like this
+  }
   display() {
     console.log("");
     console.log("     |     |");
@@ -65,6 +70,9 @@ class Board {
     this.squares[key].setMarker(marker);
   }
 
+  unMarkSquareAt(key) {
+    this.markSquareAt(key, Square.UNUSED_SQUARE);
+  }
   unusedSquares() {
     let keys = Object.keys(this.squares);
     return keys.filter(key => this.squares[key].isUnused());
@@ -206,12 +214,48 @@ class TTTGame {
   computerMoves() {
     let validChoices = this.board.unusedSquares();
     let choice;
-
-    do {
-      choice = Math.floor((9 * Math.random()) + 1).toString();
-    } while (!validChoices.includes(choice));
-
+    // if (this.canWin(this.human) || this.canWin(this.computer)) {
+    //   choice = this.winningMoveOf(this.human) || this.winningMoveOf(this.computer);
+    // }
+    if(this.someoneCouldWinOnNextMove()) {
+      choice = (
+        this.findWinningMoveOf(this.computer) || 
+        this.findWinningMoveOf(this.human)
+      );
+    } else {
+    // if (this.findWinningMoveOf(this.human)) {
+    //   choice = this.findWinningMoveOf(this.human);
+    //   // console.log(choice);
+    // } else {
+      do {
+        choice = Math.floor((9 * Math.random()) + 1).toString();
+      } while (!validChoices.includes(choice));
+    }
+    // console.log(choice);
     this.board.markSquareAt(choice, this.computer.getMarker());
+  }
+
+  someoneCouldWinOnNextMove() {
+    return this.findWinningMoveOf(this.computer)
+      || this.findWinningMoveOf(this.human);
+  }
+
+  findWinningMoveOf(player) {
+    let unusedSquares = this.board.unusedSquares();
+    let winningSquareNumber = null;
+
+    for (let idx = 0; idx < unusedSquares.length; idx += 1) {
+      let squareNumber = unusedSquares[idx];
+      this.board.markSquareAt(squareNumber, player.getMarker());
+
+      if (this.made3InARow(player,this.board)) {
+        winningSquareNumber = squareNumber;
+        this.board.unMarkSquareAt(squareNumber);
+        break;
+      }
+      this.board.unMarkSquareAt(squareNumber);
+    }
+    return winningSquareNumber;
   }
 
   gameOver() {
@@ -223,6 +267,10 @@ class TTTGame {
   }
 
   isWinner(player) {
+    return this.made3InARow(player);
+  }
+
+  made3InARow(player) {
     return TTTGame.POSSIBLE_WINNING_ROWS.some(row => {
       return this.board.countMarkersFor(player, row) === 3;
     });
