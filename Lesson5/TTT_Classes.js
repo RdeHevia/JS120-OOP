@@ -61,14 +61,7 @@ class Board {
     }
   }
 
-  copy() {
-    // new feature to create trialBoard???
-    // for (square in this.squares) {
-    // Object.assign({},square) ... something like this
-  }
   display() {
-    // print.sectionSeparator();
-
     console.log("");
     console.log("     |     |");
     console.log(`  ${this.squares["1"]}  |  ${this.squares["2"]}  |  ${this.squares["3"]}`);
@@ -85,13 +78,6 @@ class Board {
 
     print.sectionSeparator();
   }
-
-  // displayWithClear() {
-  //   console.clear();
-  //   console.log('');
-  //   console.log('');
-  //   this.display();
-  // }
 
   markSquareAt(key, marker) {
     this.squares[key].setMarker(marker);
@@ -150,7 +136,6 @@ class Score {
   }
 
   display() {
-    // console.clear();
     print.sectionSeparator();
 
     console.log('SCORE (HUMAN : COMPUTER)');
@@ -206,7 +191,6 @@ class TTTGame {
 
     this.player1 = this.human;
     this.player2 = this.computer;
-    // this.assignPlayer1And2();
   }
 
   play() {
@@ -255,6 +239,24 @@ class TTTGame {
     this.displayInterface('game over');
   }
 
+  playAgain() {
+    const VALID_CHOICES = {y: true, n: false};
+    print.prompt('Do you want to play again? Yes (y) or no (n)?');
+    let choice = readline.question();
+
+    if (!VALID_CHOICES.hasOwnProperty(choice)) {
+      console.log('Invalid choice. please choose again.');
+      return this.playAgain();
+    }
+    return VALID_CHOICES[choice];
+
+  }
+
+  promptToContinue(message = 'Press ENTER to continue.') {
+    print.prompt(message);
+    readline.question();
+  }
+
   displayInterface(gameStage = 'in progress') {
     switch (gameStage) {
       case 'in progress':
@@ -282,6 +284,7 @@ class TTTGame {
 
     console.log(`TIC TAC TOE`);
   }
+
   displayWelcomeMessage() {
     console.clear();
     print.sectionSeparator();
@@ -299,8 +302,6 @@ class TTTGame {
   }
 
   displayResults() {
-    // print.sectionSeparator();
-
     if (this.isWinner(this.human)) {
       console.log(`You won! Congratulations!`);
     } else if (this.isWinner(this.computer)) {
@@ -321,10 +322,6 @@ class TTTGame {
 
     print.sectionSeparator();
 
-  }
-
-  swapPlayers() {
-    [this.player1, this.player2] = [this.player2, this.player1];
   }
 
   playerMoves(player) {
@@ -416,6 +413,10 @@ class TTTGame {
     return unusedSquares.includes(CENTER_SQUARE_IDENTIFIER);
   }
 
+  swapPlayers() {
+    [this.player1, this.player2] = [this.player2, this.player1];
+  }
+
   gameOver() {
     return this.board.isFull() || this.someoneWon();
   }
@@ -446,30 +447,12 @@ class TTTGame {
     );
   }
 
-  playAgain() {
-    const VALID_CHOICES = {y: true, n: false};
-    print.prompt('Do you want to play again? Yes (y) or no (n)?');
-    let choice = readline.question();
-
-    if (!VALID_CHOICES.hasOwnProperty(choice)) {
-      console.log('Invalid choice. please choose again.');
-      return this.playAgain();
-    }
-    return VALID_CHOICES[choice];
-
-  }
-
   updateScore() {
     if (this.isWinner(this.human)) {
       this.score.add1Point('human');
     } else if (this.isWinner(this.computer)) {
       this.score.add1Point('computer');
     }
-  }
-
-  promptToContinue(message = 'Press ENTER to continue.') {
-    print.prompt(message);
-    readline.question();
   }
 }
 
