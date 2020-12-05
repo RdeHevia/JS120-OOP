@@ -203,6 +203,10 @@ class TTTGame {
     this.human = new Human();
     this.computer = new Computer();
     this.score = new Score();
+
+    this.player1 = this.human;
+    this.player2 = this.computer;
+    // this.assignPlayer1And2();
   }
 
   play() {
@@ -221,7 +225,10 @@ class TTTGame {
     while (true) {
       this.playOneGame();
       this.promptToContinue();
+
+      this.swapPlayers();
       this.board.reset();
+
       if (this.someoneWonTheMatch()) {
         this.displayInterface('match over');
         break;
@@ -233,13 +240,15 @@ class TTTGame {
     this.displayInterface();
 
     while (true) {
-      this.humanMoves();
+      this.playerMoves(this.player1);
       if (this.gameOver()) break;
-
-      this.computerMoves();
-      if (this.gameOver()) break;
-
       this.displayInterface();
+
+
+      this.playerMoves(this.player2);
+      if (this.gameOver()) break;
+      this.displayInterface();
+
     }
     this.updateScore();
 
@@ -313,14 +322,28 @@ class TTTGame {
     print.sectionSeparator();
 
   }
+
+  swapPlayers() {
+    [this.player1, this.player2] = [this.player2, this.player1];
+  }
+
+  playerMoves(player) {
+    if (player === this.human) {
+      this.humanMoves();
+    } else {
+      this.computerMoves();
+    }
+  }
+
   humanMoves() {
     let choice;
 
     while (true) {
       let validChoices = this.board.unusedSquares();
 
-      const prompt = `Choose a square (${TTTGame.joinOr(validChoices)}): `;
-      choice = readline.question(prompt);
+      const PROMPT_MSG = `Choose a square (${TTTGame.joinOr(validChoices)}): `;
+      print.prompt(PROMPT_MSG);
+      choice = readline.question();
 
       if (validChoices.includes(choice)) break;
 
@@ -425,7 +448,7 @@ class TTTGame {
 
   playAgain() {
     const VALID_CHOICES = {y: true, n: false};
-    console.log('Do you want to play again? Yes (y) or no (n)?');
+    print.prompt('Do you want to play again? Yes (y) or no (n)?');
     let choice = readline.question();
 
     if (!VALID_CHOICES.hasOwnProperty(choice)) {
@@ -445,7 +468,7 @@ class TTTGame {
   }
 
   promptToContinue(message = 'Press ENTER to continue.') {
-    console.log(message);
+    print.prompt(message);
     readline.question();
   }
 }
