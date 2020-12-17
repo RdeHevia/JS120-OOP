@@ -1,6 +1,8 @@
 let readline = require('readline-sync');
 
 const print = {
+  numberOfHyphens: 50,
+
   prompt (string) {
     console.log(`=> ${string}`);
   },
@@ -10,15 +12,12 @@ const print = {
   },
 
   separator () {
-    const NUMBER_OF_HYPHENS = 50;
-    console.log('-'.repeat(NUMBER_OF_HYPHENS));
+    console.log('-'.repeat(this.numberOfHyphens));
   },
 
   sectionSeparator () {
-    const NUMBER_OF_HYPHENS = 50;
-
     this.emptyLines();
-    console.log('-'.repeat(NUMBER_OF_HYPHENS));
+    console.log('-'.repeat(this.numberOfHyphens));
     this.emptyLines();
   },
 };
@@ -89,6 +88,12 @@ class Board {
   unusedSquares() {
     let keys = Object.keys(this.squares);
     return keys.filter(key => this.squares[key].isUnused());
+  }
+
+  isCenterSquareAvailable() {
+    let unusedSquares = this.unusedSquares();
+    let CENTER_SQUARE_IDENTIFIER = "5";
+    return unusedSquares.includes(CENTER_SQUARE_IDENTIFIER);
   }
 
   isFull() {
@@ -242,7 +247,7 @@ class TTTGame {
   playAgain() {
     const VALID_CHOICES = {y: true, n: false};
     print.prompt('Do you want to play again? Yes (y) or no (n)?');
-    let choice = readline.question();
+    let choice = readline.question().toLowerCase();
 
     if (!VALID_CHOICES.hasOwnProperty(choice)) {
       console.log('Invalid choice. please choose again.');
@@ -289,7 +294,24 @@ class TTTGame {
     console.clear();
     print.sectionSeparator();
     console.log('WELCOME TO TIC TAC TOE!');
+    print.emptyLines();
+    this.displayScoreToWinMatch();
+    print.emptyLines();
+    this.displayMarkerAssigment();
     print.sectionSeparator();
+  }
+
+  displayScoreToWinMatch() {
+    console.log(
+      'Whoever is first to win ' +
+      TTTGame.NUMBER_OF_POINTS_TO_WIN_MATCH +
+      ' games wins the match!'
+    );
+  }
+
+  displayMarkerAssigment() {
+    console.log(`You use: ${Square.HUMAN_MARKER}`);
+    console.log(`Computer uses: ${Square.COMPUTER_MARKER}`);
   }
 
   displayGoodbyeMessage() {
@@ -360,7 +382,7 @@ class TTTGame {
         this.offensiveComputerMove() ||
         this.defensiveComputerMove()
       );
-    } else if (this.isCenterSquareAvailable()) {
+    } else if (this.board.isCenterSquareAvailable()) {
       choice = this.pickCenterSquare();
     } else {
       do {
@@ -405,12 +427,6 @@ class TTTGame {
       this.board.unMarkSquareAt(squareNumber);
     }
     return winningSquareNumber;
-  }
-
-  isCenterSquareAvailable() {
-    let unusedSquares = this.board.unusedSquares();
-    let CENTER_SQUARE_IDENTIFIER = "5";
-    return unusedSquares.includes(CENTER_SQUARE_IDENTIFIER);
   }
 
   swapPlayers() {
